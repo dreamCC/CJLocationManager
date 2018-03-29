@@ -2,8 +2,8 @@
 //  CJLocationInfo.m
 //  CommonProject
 //
-//  Created by 仁和Mac on 2018/2/9.
-//  Copyright © 2018年 zhucj. All rights reserved.
+//  Created by zhuChaojun的Mac on 2016/2/9.
+//  Copyright © 2016年 zhucj. All rights reserved.
 //
 
 #import "CJLocationInfo.h"

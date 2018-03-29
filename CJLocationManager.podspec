@@ -2,7 +2,7 @@
 Pod::Spec.new do |s|
 
   s.name         = "CJLocationManager"
-  s.version      = "1.0.0"
+  s.version      = "1.0.1"
   s.summary      = "A commonly used positioning tool."
   s.description  = "That is commonly used in project positioning tools, support a one-time positioning, frequent positioning, etc"
 
@@ -12,5 +12,5 @@ Pod::Spec.new do |s|
   s.platform     = :ios, "8.0"
   s.source       = { :git => "https://github.com/dreamCC/CJLocationManager.git", :tag => s.version }
   s.requires_arc = true  
-  s.source_files = "CJLocationManager/*.{h,m}"
+  s.source_files = "CJLocationManager"
 end
