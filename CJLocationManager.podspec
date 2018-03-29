@@ -13,4 +13,5 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/dreamCC/CJLocationManager.git", :tag => "1.0.0" }
   s.requires_arc = true  
   s.source_files  = "CJLocationManager"
+  s.public_header_files = ['CJLocationManager/*.h']
 end
