@@ -2,18 +2,19 @@
 //  CJLocationManager.m
 //  CommonProject
 //
-//  Created by zhuChaojun的Mac on 2016/2/9.
-//  Copyright © 2016年 zhucj. All rights reserved.
+//  Created by 仁和Mac on 2018/2/9.
+//  Copyright © 2018年 zhucj. All rights reserved.
 //
 
 #import "CJLocationManager.h"
 #import "CJLocationInfo.h"
 
-#ifdef DEBUG
-#define CJLog(...) NSLog(@"%s\n %@\n\n", __func__, [NSString stringWithFormat:__VA_ARGS__])
+#if DEBUG
+    #define CJ_CLLog(format, ...) printf("[%s] %s [第%d行] %s\n", __TIME__, __FUNCTION__, __LINE__, [[NSString stringWithFormat:format, ## __VA_ARGS__] UTF8String])
 #else
-#define CJLog(...)
+    #define CJ_CLLog(format, ...)
 #endif
+
 @interface CJLocationManager ()<CLLocationManagerDelegate>
 
 @property(nonatomic, assign, readwrite) CLAuthorizationStatus authorizationStatus;
@@ -25,7 +26,9 @@
 @end
 
 static CJLocationManager *_manager = nil;
-@implementation CJLocationManager
+@implementation CJLocationManager {
+     dispatch_semaphore_t _lock;
+}
 
 +(instancetype)shareLocationManager {
     static dispatch_once_t onceToken;
@@ -37,9 +40,7 @@ static CJLocationManager *_manager = nil;
 
 -(instancetype)init {
     self = [super init];
-    if (!self) { return nil;}
-    _locationManager = [CLLocationManager new];
-    _locationManager.delegate = self;
+    if (!self)  return nil;
     
     self.desiredAccuracy = kCLLocationAccuracyBest;
     self.distanceFilter  = kCLDistanceFilterNone;
@@ -47,23 +48,30 @@ static CJLocationManager *_manager = nil;
     return self;
 }
 
+
 -(void)startUpdateLocationComplement:(CJLocationComplement)complement failed:(CJLocationFailed)failed {
     [self startUpdateLocationRepeatCount:NO Complement:complement failed:failed];
 }
 
 -(void)startUpdateLocationRepeatCount:(BOOL)shouldRepeat Complement:(CJLocationComplement)complement failed:(CJLocationFailed)failed {
-
-    _locationManager.desiredAccuracy = kCLLocationAccuracyBest;
-    _locationManager.distanceFilter  = kCLDistanceFilterNone;
-
-    if (shouldRepeat) {
-        [_locationManager startUpdatingLocation];
-    }else {
-        [_locationManager requestLocation];
-    }
+    [self didInitializelManger];
     
-    _locationComplement = [complement copy];
-    _locationFailed     = [failed copy];
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+       
+        dispatch_semaphore_wait(_lock, DISPATCH_TIME_FOREVER);
+        _locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        _locationManager.distanceFilter  = kCLDistanceFilterNone;
+        
+        if (shouldRepeat) {
+            [_locationManager startUpdatingLocation];
+        }else {
+            [_locationManager requestLocation];
+        }
+        _locationComplement = [complement copy];
+        _locationFailed     = [failed copy];
+        
+    });
+    
 }
 
 -(void)stopUpdateLocation {
@@ -72,7 +80,12 @@ static CJLocationManager *_manager = nil;
     [_locationManager stopUpdatingLocation];
 }
 
-
+#pragma mark ---- private method
+-(void)didInitializelManger {
+    _locationManager = [CLLocationManager new];
+    _locationManager.delegate = self;
+    _lock = dispatch_semaphore_create(0);
+}
 
 #pragma mark ---- CLLocationManagerDelegate
 -(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
@@ -81,7 +94,7 @@ static CJLocationManager *_manager = nil;
     switch (status) {
         case kCLAuthorizationStatusDenied:
         case kCLAuthorizationStatusRestricted:
-            CJLog(@"设置->隐私->定位服务，打开相应app的定位功能");
+            CJ_CLLog(@"设置->隐私->定位服务，打开相应app的定位功能");
             break;
         case kCLAuthorizationStatusNotDetermined:
         {
@@ -96,6 +109,11 @@ static CJLocationManager *_manager = nil;
      
         }
             break;
+        case kCLAuthorizationStatusAuthorizedWhenInUse:
+        case kCLAuthorizationStatusAuthorizedAlways:
+        {
+            dispatch_semaphore_signal(_lock);
+        }
         default:
             break;
     }
@@ -105,7 +123,7 @@ static CJLocationManager *_manager = nil;
     CLLocation *location = locations.lastObject;
     [self.geocoder reverseGeocodeLocation:location completionHandler:^(NSArray<CLPlacemark *> * _Nullable placemarks, NSError * _Nullable error) {
         if (error) {
-            CJLog(@"%@",error);
+            CJ_CLLog(@"%@",error);
             return;
         }
         CLPlacemark *mark = placemarks.firstObject;
