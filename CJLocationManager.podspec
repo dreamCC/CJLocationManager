@@ -2,7 +2,7 @@
 Pod::Spec.new do |s|
 
   s.name         = "CJLocationManager"
-  s.version      = "1.0.1"
+  s.version      = "1.0.2"
   s.summary      = "A commonly used positioning tool."
   s.description  = "That is commonly used in project positioning tools, support a one-time positioning, frequent positioning, etc"
 
